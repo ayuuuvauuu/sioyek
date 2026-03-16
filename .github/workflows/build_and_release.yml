@@ -1,4 +1,4 @@
-name: Build Release
+name: Build Linux Release
 
 on:
   push:
@@ -10,25 +10,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
-  upload-release:
-    if: ${{ (github.event_name == 'workflow_dispatch') || (github.event_name != 'pull_request') }}
-    runs-on: ubuntu-22.04
-    needs: [build-linux]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            linux-uploads/sioyek-release-linux.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-linux:
     runs-on: ubuntu-22.04
@@ -51,7 +32,7 @@ jobs:
         with:
           plugins: qt appimage
 
-      - name: Set up GCC
+      - name: Setup GCC
         uses: egor-tensin/setup-gcc@v1
         with:
           version: 11
@@ -82,9 +63,26 @@ jobs:
           CC: gcc-11
           CXX: g++-11
 
-      - name: Upload Linux artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-uploads
+          name: sioyek-linux
           path: sioyek-release-linux.zip
 
+  upload-release:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: build-linux
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sioyek-linux
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sioyek-release-linux.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
