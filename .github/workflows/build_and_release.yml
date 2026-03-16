@@ -14,7 +14,7 @@ jobs:
   upload-release:
     if: ${{ (github.event_name == 'workflow_dispatch') || (github.event_name != 'pull_request') }}
     runs-on: ubuntu-22.04
-    needs: [build-mac, build-mac-arm, build-linux, build-windows]
+    needs: [build-linux]
 
     steps:
       - uses: actions/checkout@v4
@@ -26,10 +26,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            mac-uploads/sioyek-release-mac.zip
-            mac-arm-uploads/sioyek-release-mac-arm.zip
             linux-uploads/sioyek-release-linux.zip
-            windows-uploads/sioyek-release-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -91,107 +88,3 @@ jobs:
           name: linux-uploads
           path: sioyek-release-linux.zip
 
-  build-windows:
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.2'
-          modules: 'all'
-          cache: true
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Build
-        run: .\build_windows.bat non_portable
-
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-uploads
-          path: sioyek-release-windows.zip
-
-  build-mac:
-    runs-on: macos-13
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Cache Homebrew
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/Homebrew
-          key: ${{ runner.os }}-intel-homebrew
-          restore-keys: |
-            ${{ runner.os }}-intel-
-
-      - name: Install dependencies
-        run: brew install freeglut mesa harfbuzz
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.2'
-          modules: 'all'
-          cache: true
-
-      - name: Build
-        run: |
-          chmod +x build_mac.sh
-          MAKE_PARALLEL=$(sysctl -n hw.logicalcpu) ./build_mac.sh
-
-      - name: Upload mac artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-uploads
-          path: sioyek-release-mac.zip
-
-  build-mac-arm:
-    runs-on: macos-14
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Cache Homebrew
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/Homebrew
-          key: ${{ runner.os }}-arm-homebrew
-          restore-keys: |
-            ${{ runner.os }}-arm-
-
-      - name: Install dependencies
-        run: brew install freeglut mesa harfbuzz
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.2'
-          modules: 'all'
-          cache: true
-
-      - name: Build
-        run: |
-          chmod +x build_mac.sh
-          MAKE_PARALLEL=$(sysctl -n hw.logicalcpu) ./build_mac.sh
-          mv sioyek-release-mac.zip sioyek-release-mac-arm.zip
-
-      - name: Upload mac arm artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-arm-uploads
-          path: sioyek-release-mac-arm.zip
